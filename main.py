@@ -28,8 +28,12 @@ clock = pygame.time.Clock()
 # 2) Convert to pygame readable format
 background_img = pygame.image.load(os.path.join("img", "background.png")).convert()
 player_img = pygame.image.load(os.path.join("img", "player.png")).convert()
-rock_img = pygame.image.load(os.path.join("img", "rock.png")).convert()
+# rock_img = pygame.image.load(os.path.join("img", "rock.png")).convert()
+
 bullet_img = pygame.image.load(os.path.join("img", "bullet.png")).convert()
+rock_imgs = []
+for i in range(7):
+    rock_imgs.append(pygame.image.load(os.path.join("img", f"rock{i}.png")).convert())
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -66,17 +70,17 @@ class Player(pygame.sprite.Sprite):
 class Rock(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image_ori = rock_img
+        self.image_ori = random.choice(rock_imgs)
         self.image_ori.set_colorkey(BLACK)
 
-        self.image = self.image_ori.copy()
-        
+        self.image = self.image_ori.copy()        
         self.rect = self.image.get_rect()
+
         self.radius = self.rect.width*0.85/2
         # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
+
         self.rect.x = random.randrange(0, WIDTH - self.rect.width)
-        self.rect.y = random.randrange(-100, -40)
-        
+        self.rect.y = random.randrange(-180, -100)
         self.speedy = random.randrange(2,10)
         self.speedx = random.randrange(-3,3) 
 
@@ -87,6 +91,10 @@ class Rock(pygame.sprite.Sprite):
         self.total_degree += self.rot_degree
         self.total_degree = self.total_degree % 360
         self.image = pygame.transform.rotate(self.image_ori, self.total_degree)
+        # Re-center the rotated objects
+        center = self.rect.center
+        self.rect = self.image.get_rect()
+        self.rect.center = center
 
     def update(self):
         self.rotate()
