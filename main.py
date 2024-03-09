@@ -24,6 +24,7 @@ pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(GAME)
+
 clock = pygame.time.Clock()
 
 ### Load images
@@ -33,7 +34,8 @@ background_img = pygame.image.load(os.path.join("img", "background.png")).conver
 player_img = pygame.image.load(os.path.join("img", "player.png")).convert()
 player_mini_img = pygame.transform.scale(player_img, (25, 19))
 player_mini_img.set_colorkey(BLACK)
-
+game_icon = pygame.image.load(os.path.join("img","spaceship.png")).convert()
+pygame.display.set_icon(game_icon)
 bullet_img = pygame.image.load(os.path.join("img", "bullet.png")).convert()
 rock_imgs = []
 for i in range(7):
@@ -76,9 +78,9 @@ power_sounds['gun'] = pygame.mixer.Sound(os.path.join("sound","pow1.wav"))
 font_name = os.path.join("font.ttf")
 
 def draw_init():
-    screen.blit(background_img, (0,0))
+    screen.blit(background_img, (0, 0))
     draw_text(screen, "Star Trek", 64, WIDTH/2, HEIGHT/4)
-    draw_text(screen, "Press left/right to control, space to shoot", 22, WIDTH/2, HEIGHT/2)
+    draw_text(screen, "←/→ to control, space to shoot", 30, WIDTH/2, HEIGHT/2)
     draw_text(screen, "Press any button to start the game", 22, WIDTH/2, HEIGHT*3/4) 
     pygame.display.update()
     waiting = True
@@ -89,8 +91,10 @@ def draw_init():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                return True
             elif event.type == pygame.KEYUP:
                 waiting = False 
+                return False
 
 def draw_text(surf, text, size, x, y):
     font = pygame.font.Font(font_name, size)
@@ -288,19 +292,17 @@ class Power(pygame.sprite.Sprite):
         if self.rect.top > HEIGHT:
             self.kill()
         
-
-
-
 # Infinite music loop
 pygame.mixer.music.play(-1)
 
 # Game loop
 show_init = True
-running = True
+running   = True
 
 while running:
     if show_init:
-        draw_init()
+        if draw_init():
+            break
         show_init = False
         all_sprites = pygame.sprite.Group()
         rocks = pygame.sprite.Group()
