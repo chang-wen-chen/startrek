@@ -54,17 +54,43 @@ for i in range(9):
     expl_img.set_colorkey(BLACK)
     expl_anim['player'].append(expl_img)
 
+power_imgs = {}
+power_imgs['shield'] = pygame.image.load(os.path.join("img", "shield.png")).convert()
+power_imgs['gun'] = pygame.image.load(os.path.join("img", "gun.png")).convert()
+
 ### Load music
 pygame.mixer.music.load(os.path.join("sound", "background.ogg"))
+pygame.mixer.music.set_volume(0.5)
 shoot_sound = pygame.mixer.Sound(os.path.join("sound","shoot.wav"))
 die_sound = pygame.mixer.Sound(os.path.join("sound","rumble.ogg"))
 expl_sounds = []
 for i in range(2):
     expl_sounds.append(pygame.mixer.Sound(os.path.join("sound",f"expl{i}.wav")))
-pygame.mixer.music.set_volume(0.5)
+
+power_sounds = {}
+power_sounds['shield'] = pygame.mixer.Sound(os.path.join("sound","pow0.wav"))
+power_sounds['gun'] = pygame.mixer.Sound(os.path.join("sound","pow1.wav"))
 
 ### Load font
-font_name = pygame.font.match_font('arial')
+# font_name = pygame.font.match_font('arial')
+font_name = os.path.join("font.ttf")
+
+def draw_init():
+    screen.blit(background_img, (0,0))
+    draw_text(screen, "Star Trek", 64, WIDTH/2, HEIGHT/4)
+    draw_text(screen, "Press left/right to control, space to shoot", 22, WIDTH/2, HEIGHT/2)
+    draw_text(screen, "Press any button to start the game", 22, WIDTH/2, HEIGHT*3/4) 
+    pygame.display.update()
+    waiting = True
+    while waiting:
+        clock.tick(FPS)
+
+        ### Get inputs
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            elif event.type == pygame.KEYUP:
+                waiting = False 
 
 def draw_text(surf, text, size, x, y):
     font = pygame.font.Font(font_name, size)
@@ -114,9 +140,16 @@ class Player(pygame.sprite.Sprite):
         self.lives = 3
         self.hidden = False
         self.hide_time = 0
+        self.gun = 1
+        self.gun_time = 0
     
     def update(self):
-        if self.hidden and pygame.time.get_ticks() - self.hide_time > 1000:
+        now = pygame.time.get_ticks()
+        if self.gun > 1 and now - self.gun_time > 5000:
+            self.gun -= 1
+            self.gun_time = now
+
+        if self.hidden and now - self.hide_time > 1000:
             self.hidden = False
             self.rect.centerx = WIDTH/2
             self.rect.bottom = HEIGHT - 20
@@ -136,10 +169,23 @@ class Player(pygame.sprite.Sprite):
 
     def shoot(self):
         if not(self.hidden):
-            bullet = Bullet(self.rect.centerx, self.rect.top)
-            all_sprites.add(bullet)
-            bullets.add(bullet)
-            shoot_sound.play()
+            if self.gun == 1:
+                bullet = Bullet(self.rect.centerx, self.rect.top)
+                all_sprites.add(bullet)
+                bullets.add(bullet)
+                shoot_sound.play()
+            elif self.gun >= 2:
+                bullet1 = Bullet(self.rect.left, self.rect.centery)
+                bullet2 = Bullet(self.rect.right, self.rect.centery)
+                all_sprites.add(bullet1)
+                all_sprites.add(bullet2)
+                bullets.add(bullet1)
+                bullets.add(bullet2)
+                shoot_sound.play()
+
+    def gunup(self):
+        self.gun += 1
+        self.gun_time = pygame.time.get_ticks()
 
     def hide(self):
         self.hidden = True
@@ -226,26 +272,48 @@ class Explosion(pygame.sprite.Sprite):
                 center = self.rect.center
                 self.rect = self.image.get_rect()
                 self.rect.center = center
+
+class Power(pygame.sprite.Sprite):
+    def __init__(self, center):
+        pygame.sprite.Sprite.__init__(self)
+        self.type = random.choice(('shield','gun'))
+        self.image = power_imgs[self.type]
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.speedy = 3
+   
+    def update(self):
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill()
         
-all_sprites = pygame.sprite.Group()
 
-rocks = pygame.sprite.Group()
-bullets = pygame.sprite.Group()
 
-player = Player()
 
-all_sprites.add(player)
-for i in range(NUM_ROCKS):
-    refresh_rock()
-
-score = 0
 # Infinite music loop
 pygame.mixer.music.play(-1)
 
 # Game loop
+show_init = True
 running = True
 
 while running:
+    if show_init:
+        draw_init()
+        show_init = False
+        all_sprites = pygame.sprite.Group()
+        rocks = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
+        powers = pygame.sprite.Group()
+
+        player = Player()
+        all_sprites.add(player)
+
+        for i in range(NUM_ROCKS):
+            refresh_rock()
+
+        score = 0
 
     # FPS runs at most in 1 sec, constrain for different CPU clocks
     clock.tick(FPS)
@@ -260,19 +328,24 @@ while running:
 
     ### Update game
     all_sprites.update()
-    # [Collide][Rock | bullet] Judge if group elements collide, return crash number
+
+    ### [Collide][Rock | bullet] Judge if group elements collide, return crash number
     hits = pygame.sprite.groupcollide(rocks, bullets, True, True)
     for hit in hits:
         random.choice(expl_sounds).play()
         score += hit.radius
         expl = Explosion(hit.rect.center, 'lg')
         all_sprites.add(expl)
+        if random.random() > 0.8:
+            pow = Power(hit.rect.center)
+            all_sprites.add(pow)
+            powers.add(pow)
         refresh_rock()
 
-    # [Collide][Player | Rock] Judge player is hit by rock, game finished
-        # Rect judgement
-        # hits = pygame.sprite.spritecollide(player, rocks, False)
-        # Circle judgement
+    ### [Collide][Player | Rock]
+    # Rect judgement
+    # hits = pygame.sprite.spritecollide(player, rocks, False)
+    # Circle judgement
     hits = pygame.sprite.spritecollide(player, rocks, True, pygame.sprite.collide_circle)
     for hit in hits:
         refresh_rock()
@@ -288,8 +361,19 @@ while running:
             # Recovery time 
             player.hide()
 
+    hits = pygame.sprite.spritecollide(player, powers, True)
+    for hit in hits:
+        if hit.type == 'shield':
+            player.health += 20
+            if player.health > 100:
+                player.health = 100
+            power_sounds['shield'].play()
+        elif hit.type == 'gun':
+            player.gunup()
+            power_sounds['gun'].play()
+
     if player.lives == 0 and not (death_expl.alive()):
-        running = False
+        show_init = True
 
     ### Render
     screen.blit(background_img, (0,0))
