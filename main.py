@@ -13,6 +13,7 @@ HEIGHT = 600
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 YELLOW = (255, 255, 0)
+GREEN = (0, 255, 0)
 RED = (255, 0 ,0)
 DARKGRAY = (47, 79, 79)
 
@@ -55,6 +56,21 @@ def draw_text(surf, text, size, x, y):
     text_rect.top = y
     surf.blit(text_surface, text_rect)
 
+def draw_health(surf, hp, x, y):
+    if hp < 0:
+        hp = 0
+    BAR_LENGTH = 100
+    BAR_HEIGHT = 10
+    fill = (hp/100)*BAR_LENGTH
+    frame_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
+    fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
+    pygame.draw.rect(surf, GREEN, fill_rect)
+    pygame.draw.rect(surf, WHITE, frame_rect, 2)
+
+def refresh_rock():
+    r = Rock()
+    all_sprites.add(r)
+    rocks.add(r)
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -69,6 +85,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.centerx = WIDTH/2
         self.rect.bottom = HEIGHT - 20
         self.speedx = 8
+        self.health = 100
     
     def update(self):
         # Return boolean list of keys on keyboard
@@ -155,9 +172,7 @@ player = Player()
 
 all_sprites.add(player)
 for i in range(NUM_ROCKS):
-    rock = Rock()
-    all_sprites.add(rock)
-    rocks.add(rock)
+    refresh_rock()
 
 score = 0
 # Infinite music loop
@@ -187,22 +202,24 @@ while running:
     for hit in hits:
         random.choice(expl_sounds).play()
         score += hit.radius
-        r = Rock()
-        all_sprites.add(r)
-        rocks.add(r)
+        refresh_rock()
 
     # Judge trek is hit by rock, game finished
         # Rect judgement
         # hits = pygame.sprite.spritecollide(player, rocks, False)
         # Circle judgement
-    hits = pygame.sprite.spritecollide(player, rocks, False, pygame.sprite.collide_circle)
-    if hits:
-        running = False
+    hits = pygame.sprite.spritecollide(player, rocks, True, pygame.sprite.collide_circle)
+    for hit in hits:
+        refresh_rock()
+        player.health -= hit.radius
+        if player.health <= 0:
+            running = False
 
     ### Render
     screen.blit(background_img, (0,0))
     all_sprites.draw(screen)
     draw_text(screen, str(score), 18, WIDTH/2, 10)
+    draw_health(screen, player.health, 10, 10)
     pygame.display.update()
             
 pygame.quit()
