@@ -16,10 +16,11 @@ YELLOW = (255, 255, 0)
 RED = (255, 0 ,0)
 DARKGRAY = (47, 79, 79)
 
-NUM_ROCKS = 10
+NUM_ROCKS = 3
 
 # Initialize game and window
 pygame.init()
+pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(GAME)
 clock = pygame.time.Clock()
@@ -35,6 +36,15 @@ bullet_img = pygame.image.load(os.path.join("img", "bullet.png")).convert()
 rock_imgs = []
 for i in range(7):
     rock_imgs.append(pygame.image.load(os.path.join("img", f"rock{i}.png")).convert())
+
+# Load music
+# background_sound = pygame.mixer.Sound(os.path.join("sound","background.ogg"))
+pygame.mixer.music.load(os.path.join("sound", "background.ogg"))
+shoot_sound = pygame.mixer.Sound(os.path.join("sound","shoot.wav"))
+expl_sounds = []
+for i in range(2):
+    expl_sounds.append(pygame.mixer.Sound(os.path.join("sound",f"expl{i}.wav")))
+pygame.mixer.music.set_volume(0.5)
 
 font_name = pygame.font.match_font('arial')
 def draw_text(surf, text, size, x, y):
@@ -77,6 +87,7 @@ class Player(pygame.sprite.Sprite):
         bullet = Bullet(self.rect.centerx, self.rect.top)
         all_sprites.add(bullet)
         bullets.add(bullet)
+        shoot_sound.play()
 
 class Rock(pygame.sprite.Sprite):
     def __init__(self):
@@ -84,7 +95,7 @@ class Rock(pygame.sprite.Sprite):
         self.image_ori = random.choice(rock_imgs)
         self.image_ori.set_colorkey(BLACK)
 
-        self.image = self.image_ori.copy()        
+        self.image = self.image_ori.copy()
         self.rect = self.image.get_rect()
 
         self.radius = int(self.rect.width*0.85/2)
@@ -149,6 +160,8 @@ for i in range(NUM_ROCKS):
     rocks.add(rock)
 
 score = 0
+# Infinite music loop
+pygame.mixer.music.play(-1)
 
 # Game loop
 running = True
@@ -172,6 +185,7 @@ while running:
     hits = pygame.sprite.groupcollide(rocks, bullets, True, True)
 
     for hit in hits:
+        random.choice(expl_sounds).play()
         score += hit.radius
         r = Rock()
         all_sprites.add(r)
