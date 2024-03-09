@@ -26,20 +26,27 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(GAME)
 clock = pygame.time.Clock()
 
-# Load images
+### Load images
 # 1) Avoid errors across difference os path format 
 # 2) Convert to pygame readable format
 background_img = pygame.image.load(os.path.join("img", "background.png")).convert()
 player_img = pygame.image.load(os.path.join("img", "player.png")).convert()
-# rock_img = pygame.image.load(os.path.join("img", "rock.png")).convert()
 
 bullet_img = pygame.image.load(os.path.join("img", "bullet.png")).convert()
 rock_imgs = []
 for i in range(7):
     rock_imgs.append(pygame.image.load(os.path.join("img", f"rock{i}.png")).convert())
 
-# Load music
-# background_sound = pygame.mixer.Sound(os.path.join("sound","background.ogg"))
+expl_anim = {}
+expl_anim['lg'] = []
+expl_anim['sm'] = []
+for i in range(9):
+    expl_img = pygame.image.load(os.path.join("img", f"expl{i}.png")).convert()
+    expl_img.set_colorkey(BLACK)
+    expl_anim['lg'].append(pygame.transform.scale(expl_img, (75, 75)))
+    expl_anim['sm'].append(pygame.transform.scale(expl_img, (30, 30)))
+
+### Load music
 pygame.mixer.music.load(os.path.join("sound", "background.ogg"))
 shoot_sound = pygame.mixer.Sound(os.path.join("sound","shoot.wav"))
 expl_sounds = []
@@ -47,7 +54,9 @@ for i in range(2):
     expl_sounds.append(pygame.mixer.Sound(os.path.join("sound",f"expl{i}.wav")))
 pygame.mixer.music.set_volume(0.5)
 
+### Load font
 font_name = pygame.font.match_font('arial')
+
 def draw_text(surf, text, size, x, y):
     font = pygame.font.Font(font_name, size)
     text_surface = font.render(text, True, WHITE)
@@ -163,6 +172,30 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
         self.rect.y += self.speedy
 
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, center, size):
+        pygame.sprite.Sprite.__init__(self)
+        self.size = size
+        self.image = expl_anim[self.size][0]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+   
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == len(expl_anim[self.size]):
+                self.kill()
+            else:
+                self.image = expl_anim[self.size][self.frame]
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+        
 all_sprites = pygame.sprite.Group()
 
 rocks = pygame.sprite.Group()
@@ -196,15 +229,16 @@ while running:
 
     ### Update game
     all_sprites.update()
-    # Judge if group elements collide, return crash number
+    # [Collide][Rock | bullet] Judge if group elements collide, return crash number
     hits = pygame.sprite.groupcollide(rocks, bullets, True, True)
-
     for hit in hits:
         random.choice(expl_sounds).play()
         score += hit.radius
+        expl = Explosion(hit.rect.center, 'lg')
+        all_sprites.add(expl)
         refresh_rock()
 
-    # Judge trek is hit by rock, game finished
+    # [Collide][Player | Rock] Judge player is hit by rock, game finished
         # Rect judgement
         # hits = pygame.sprite.spritecollide(player, rocks, False)
         # Circle judgement
@@ -212,6 +246,8 @@ while running:
     for hit in hits:
         refresh_rock()
         player.health -= hit.radius
+        expl = Explosion(hit.rect.center, 'sm')
+        all_sprites.add(expl)
         if player.health <= 0:
             running = False
 
