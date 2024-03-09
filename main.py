@@ -40,6 +40,8 @@ class Player(pygame.sprite.Sprite):
         # Make background black transparent
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
+        self.radius = 20
+        # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
         self.rect.centerx = WIDTH/2
         self.rect.bottom = HEIGHT - 20
         self.speedx = 8
@@ -68,6 +70,8 @@ class Rock(pygame.sprite.Sprite):
         self.image = rock_img
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
+        self.radius = self.rect.width*0.85/2
+        # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
         self.rect.x = random.randrange(0, WIDTH - self.rect.width)
         self.rect.y = random.randrange(-100, -40)
         
@@ -140,7 +144,10 @@ while running:
         rocks.add(r)
 
     # Judge trek is hit by rock, game finished
-    hits = pygame.sprite.spritecollide(player, rocks, False)
+        # Rect judgement
+        # hits = pygame.sprite.spritecollide(player, rocks, False)
+        # Circle judgement
+    hits = pygame.sprite.spritecollide(player, rocks, False, pygame.sprite.collide_circle)
     if hits:
         running = False
 
