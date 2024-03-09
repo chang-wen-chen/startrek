@@ -1,10 +1,12 @@
 # Manipulate sprites
 import pygame
+import random
 
 # Constant variables
 FPS = 60
 WHITE = (255,255,255)
 GREEN = (0, 255, 0)
+RED = (255, 0 ,0)
 WIDTH = 500
 HEIGHT = 600
 
@@ -13,7 +15,6 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Star Trek")
 clock = pygame.time.Clock()
-
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -38,12 +39,38 @@ class Player(pygame.sprite.Sprite):
         if self.rect.left < 0:
             self.rect.left = 0
 
+class Rock(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((30,40))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(0, WIDTH - self.rect.width)
+        self.rect.y = random.randrange(-100, -40)
+        
+        self.speedy = random.randrange(2,10)
+        self.speedx = random.randrange(-3,3) 
+    
+    def update(self):
+        self.rect.y += self.speedy
+        self.rect.x += self.speedx
 
+        if self.rect.top > HEIGHT or self.rect.left > WIDTH or self.rect.right < 0:
+            self.rect.x = random.randrange(0, WIDTH - self.rect.width)
+            self.rect.y = random.randrange(-100, -40)
+        
+            self.speedy = random.randrange(2,10)
+            self.speedx = random.randrange(-3,3)
 
+        
 
 all_sprites = pygame.sprite.Group()
 player = Player()
+
 all_sprites.add(player)
+for i in range(18):
+    rock = Rock()
+    all_sprites.add(rock)
 
 # Game loop
 running = True
